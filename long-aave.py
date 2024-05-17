@@ -41,7 +41,7 @@ def trading_bot():
     
     #Fetch historical data
     symbol = 'AAVE/USDT'
-    amount = 0.1 
+    amount = 0.15 
     type = 'market'
     timeframe = '1h'
     side= 'Buy'
