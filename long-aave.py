@@ -1,6 +1,5 @@
 import ccxt
 import pandas as pd
-import pandas_ta as ta
 import time
 import schedule
 import numpy as np
@@ -19,7 +18,11 @@ bybit = ccxt.bybit({
 })
 
 
-
+session = HTTP(
+    testnet=False,
+    api_key="LQLW7aAhcalaYMAiUe",
+    api_secret="X02KF8x2VVXuXDQmoWAd8TCXx3dS7M7fAaKD",
+)
 #bybit.set_sandbox_mode(True) # activates testnet mode
 
 #bybit future contract enable
@@ -106,7 +109,13 @@ def trading_bot():
 
                  # Step 7: Check for signals and execute trades
                 if df['long_condition'].iloc[-1] > 1:
-                    order =bybit.create_market_order(symbol, side, amount)
+                    order = (session.place_order(
+                        category="linear",
+                        symbol="AAVEUSDT",
+                        side="Buy",
+                        orderType="Market",
+                        qty=0.1,
+                    ))
                     
                     
                     print(f"long order placed: {order}")

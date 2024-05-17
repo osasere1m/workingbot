@@ -19,6 +19,11 @@ bybit = ccxt.bybit({
 })
 
 
+session = HTTP(
+    testnet=False,
+    api_key="LQLW7aAhcalaYMAiUe",
+    api_secret="X02KF8x2VVXuXDQmoWAd8TCXx3dS7M7fAaKD",
+)
 
 #bybit.set_sandbox_mode(True) # activates testnet mode
 
@@ -46,7 +51,7 @@ def trading_bot():
     timeframe = '1h'
     limit = 300
     side = 'Sell'
-    ohlcv = bybit.fetch_ohlcv(symbol, timeframe, limit)
+    ohlcv = bybit.fetch_ohlcv(symbol, timeframe)
 
     # Convert the data into a pandas DataFrame for easy manipulation
     df = pd.DataFrame(ohlcv, columns=['Timestamp', 'Open', 'High', 'Low', 'Close', 'Volume'])
@@ -103,9 +108,15 @@ def trading_bot():
 
                  # Step 7: Check for signals and execute trades
                 if df['short_condition'].iloc[-1] > 1:
-                    order = bybit.create_market_order(symbol, side, amount)
+                    order = (session.place_order(
+                        category="linear",
+                        symbol="AAVEUSDT",
+                        side="Sell",
+                        orderType="Market",
+                        qty=0.1,
+                    ))
                     
-                    print(f"long order placed: {order}")
+                    print(f"short order placed: {order}")
                     #print(f"long order placed:")
                     time.sleep(21600)
                     break
