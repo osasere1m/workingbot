@@ -1,9 +1,11 @@
-import ccxt
-import pandas as pd
-import time
+#fixed support and resistance level
+#entry price close below a support and price above resistance level
+
+
 import schedule
-import numpy as np
-from scipy.signal import argrelextrema
+import ccxt
+import time
+import pandas as pd
 from pybit.unified_trading import HTTP
 
 
@@ -17,7 +19,6 @@ bybit = ccxt.bybit({
     }
 })
 
-
 session = HTTP(
     testnet=False,
     api_key="LQLW7aAhcalaYMAiUe",
@@ -29,85 +30,57 @@ session = HTTP(
 bybit.options["dafaultType"] = 'future'
 #load market
 bybit.load_markets()
-
-#get future account balance
-def get_balance():
-    params ={'type':'swap', 'code':'USDT'}
-    account = bybit.fetch_balance(params)['USDT']['total']
-    print(account)
-get_balance()
-
-
-# Step 3: Define the trading bot function
+  
 
 def trading_bot():
-    
-    #Fetch historical data
+    #Step 4: Fetch historical data
     symbol = 'AAVE/USDT'
-    amount = 0.15 
+    #amount = 0.1 
     type = 'market'
-    timeframe = '1h'
-    side= 'Buy'
-    limit = 500
+    timeframe = '15m'
+    limit = 200
+
+    #higher timeframe market direction
     ohlcv = bybit.fetch_ohlcv(symbol, timeframe)
-    # Convert the data into a pandas DataFrame for easy manipulation
     df = pd.DataFrame(ohlcv, columns=['Timestamp', 'Open', 'High', 'Low', 'Close', 'Volume'])
     df['Timestamp'] = pd.to_datetime(df['Timestamp'], unit='ms')
     df.set_index('Timestamp', inplace=True)
     print(df)
-    # Step 5: Calculate technical indicators
-
-    #df.ta.ema(length=20, append=True)
-  
     
 
-    WINDOW = 10 
 
-    df['min'] = df.iloc[argrelextrema(df['Close'].values, np.less_equal, order=WINDOW)[0]]['Close']
-    df['max'] = df.iloc[argrelextrema(df['Close'].values, np.greater_equal, order=WINDOW)[0]]['Close']
-    print(df)
+    # support and resistance detection
+    # Example: using 25th and 75th percentiles
+    df['support'] = df['Close'].quantile(0.25)
+    df['resistance']  = df['Close'].quantile(0.75)
 
-    #entry signal
-    df["support"] = 0
+    df['support_2'] = df['Close'].quantile(0.15)  # Optional: Add additional support levels
+    df['resistance_2'] = df['Close'].quantile(0.85)  # Optional: Add additional resistance levels
 
-    df.loc[(df['min'] < 0), "support" ]= 1 #not at support
-    df.loc[(df['min'] > 1), "support" ]= 2 #at support'
-    print(df)
-    df["resistance"] = 0
-
-    df.loc[(df['max'] < 0), "resistance" ]= 1 #not at resistance
-    df.loc[(df['max'] > 1), "resistance" ]= 2 #at resistance
-    print(df)
+    #print(df.tail(50))
    
-    # Define the conditions for long trades
+    #Define the conditions for long and short trades
     df["long_condition"] = 1
-    df.loc[(df["support"] == 2 ), "long_condition"] = 2
-
-    # Define the conditions for short trades
-    df["short_condition"] = 1
-    df.loc[(df["resistance"] == 2 ), "short_condition"] = 2
-
-
-    print(df)
+    df.loc[df["Close"] < df["support_2"], "long_condition" ]= 2 #at support
     
+    print(df)
 
 
+    
     
     try:
-        # Check if there is an open trade position
+
         positions = bybit.fetch_positions()
         print(positions)
         check_positions = [position for position in positions if 'AAVE' in position['symbol']]
-        #print(f"open position {positions}")
         
-
         
         if not check_positions:
             # Step 6: Implement the trading strategy
             for i, row in df.iterrows():
-
-                 # Step 7: Check for signals and execute trades
-                if df['long_condition'].iloc[-1] > 1:
+                
+                
+                if df['long_condition'].iloc[-1] == 2:
                     order = (session.place_order(
                         category="linear",
                         symbol="AAVEUSDT",
@@ -121,22 +94,22 @@ def trading_bot():
                     #print(f"long order placed:")
                     time.sleep(21600)
                     break
-
+                    
                    
-                
                 else:
-                    print(f"checking for long signals")
-                
-                    time.sleep(120)
+                    print(f"checking for signals")
+                    
+                    time.sleep(60)
                     break
-                        
-                   
+                    
+                    
                     
         else:
             print("There is already an open position.")
             
-            time.sleep(120)
-            pass
+            
+                
+            time.sleep(30)
 
     except ccxt.RequestTimeout as e:
         print(f"A request timeout occurred: {e}")
@@ -153,15 +126,15 @@ def trading_bot():
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
         # Handle all other unexpected errors
-    
-
 # Run the trading_bot function
 trading_bot()
-
 
 schedule.every(1).minutes.do(trading_bot)
 # Call the trading_bot function every 2 minutes
 while True:
     schedule.run_pending()
     time.sleep(20)
+    
+
+
 
