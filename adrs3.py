@@ -34,7 +34,7 @@ bybit.load_markets()
 
 def trading_bot():
     #Step 4: Fetch historical data
-    symbol = 'LINK/USDT'
+    symbol = 'COMP/USDT'
     #amount = 0.1 
     type = 'market'
     timeframe = '1h'
@@ -72,7 +72,7 @@ def trading_bot():
 
         positions = bybit.fetch_positions()
         print(positions)
-        check_positions = [position for position in positions if 'LINK' in position['symbol']]
+        check_positions = [position for position in positions if 'COMP' in position['symbol']]
         
         
         if not check_positions:
@@ -83,7 +83,7 @@ def trading_bot():
                 if df['long_condition'].iloc[-1] == 2:
                     order = (session.place_order(
                         category="linear",
-                        symbol="LINKUSDT",
+                        symbol="COMPUSDT",
                         side="Buy",
                         orderType="Market",
                         qty=0.1,
@@ -99,7 +99,7 @@ def trading_bot():
                 else:
                     print(f"checking for signals")
                     
-                    time.sleep(60)
+                    time.sleep(30)
                     break
                     
                     

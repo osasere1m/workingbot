@@ -37,11 +37,11 @@ def trading_bot():
     symbol = 'AAVE/USDT'
     #amount = 0.1 
     type = 'market'
-    timeframe = '15m'
-    limit = 200
+    timeframe = '1h'
+    limit = 35
 
     #higher timeframe market direction
-    ohlcv = bybit.fetch_ohlcv(symbol, timeframe)
+    ohlcv = bybit.fetch_ohlcv(symbol, timeframe, limit=limit)
     df = pd.DataFrame(ohlcv, columns=['Timestamp', 'Open', 'High', 'Low', 'Close', 'Volume'])
     df['Timestamp'] = pd.to_datetime(df['Timestamp'], unit='ms')
     df.set_index('Timestamp', inplace=True)
@@ -57,7 +57,7 @@ def trading_bot():
     df['support_2'] = df['Close'].quantile(0.15)  # Optional: Add additional support levels
     df['resistance_2'] = df['Close'].quantile(0.85)  # Optional: Add additional resistance levels
 
-    #print(df.tail(50))
+    print(df.tail(50))
    
     #Define the conditions for long and short trades
     df["long_condition"] = 1
