@@ -6,6 +6,7 @@ import schedule
 import ccxt
 import time
 import pandas as pd
+import pandas_ta as ta
 from pybit.unified_trading import HTTP
 
 
@@ -46,28 +47,31 @@ def trading_bot():
     df['Timestamp'] = pd.to_datetime(df['Timestamp'], unit='ms')
     df.set_index('Timestamp', inplace=True)
     print(df)
+    #calculate the SMA 
+    df["GC"] = df.ta.sma(50, append=True) > df.ta.sma(200, append=True)
+    smaf= df.ta.sma(length= 20, append=True)
+    #df.rolling(window = 20).mean().shift(10)
+    #sma1= df.rolling(20).mean()
+    print(df)
     
 
 
     # support and resistance detection
     # Example: using 25th and 75th percentiles
-    df['support'] = df['Close'].quantile(0.25)
-    df['resistance']  = df['Close'].quantile(0.75)
+    df['support'] = df['Close'].min()
+    df['resistance']  = df['Close'].max()
 
-    df['support_2'] = df['Close'].quantile(0.15)  # Optional: Add additional support levels
-    df['resistance_2'] = df['Close'].quantile(0.85)  # Optional: Add additional resistance levels
-
-    #print(df.tail(50))
+    print(df.tail(50))
    
     #Define the conditions for long and short trades
-    df["long_condition"] = 1
-    df.loc[df["Close"] < df["support_2"], "long_condition" ]= 2 #at support
+    #df["long_condition"] = 1
+    #df.loc[df["Close"] < df["support_2"], "long_condition" ]= 2 #at support
     
-    print(df)
+    #print(df)
 
 
     
-    
+    """
     try:
 
         positions = bybit.fetch_positions()
@@ -126,6 +130,7 @@ def trading_bot():
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
         # Handle all other unexpected errors
+    """
 # Run the trading_bot function
 trading_bot()
 

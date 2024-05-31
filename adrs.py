@@ -6,6 +6,7 @@ import schedule
 import ccxt
 import time
 import pandas as pd
+import pandas_ta as ta
 from pybit.unified_trading import HTTP
 
 
@@ -33,74 +34,118 @@ bybit.load_markets()
   
 
 def trading_bot():
-    #Step 4: Fetch historical data
-    symbol = 'AAVE/USDT'
-    #amount = 0.1 
-    type = 'market'
-    timeframe = '1h'
-    limit = 35
-
-    #higher timeframe market direction
-    ohlcv = bybit.fetch_ohlcv(symbol, timeframe, limit=limit)
-    df = pd.DataFrame(ohlcv, columns=['Timestamp', 'Open', 'High', 'Low', 'Close', 'Volume'])
-    df['Timestamp'] = pd.to_datetime(df['Timestamp'], unit='ms')
-    df.set_index('Timestamp', inplace=True)
-    print(df)
-    
-
-
-    # support and resistance detection
-    # Example: using 25th and 75th percentiles
-    df['support'] = df['Close'].quantile(0.25)
-    df['resistance']  = df['Close'].quantile(0.75)
-
-    df['support_2'] = df['Close'].quantile(0.15)  # Optional: Add additional support levels
-    df['resistance_2'] = df['Close'].quantile(0.85)  # Optional: Add additional resistance levels
-
-    print(df.tail(50))
-   
-    #Define the conditions for long and short trades
-    df["long_condition"] = 1
-    df.loc[df["Close"] < df["support_2"], "long_condition" ]= 2 #at support
-    
-    print(df)
-
-
-    
+     
     
     try:
 
         positions = bybit.fetch_positions()
         print(positions)
-        check_positions = [position for position in positions if 'AAVE' in position['symbol']]
+        check_positions = [position for position in positions if 'LTC' in position['symbol']]
         
         
         if not check_positions:
             # Step 6: Implement the trading strategy
-            for i, row in df.iterrows():
-                
-                
-                if df['long_condition'].iloc[-1] == 2:
-                    order = (session.place_order(
-                        category="linear",
-                        symbol="AAVEUSDT",
-                        side="Buy",
-                        orderType="Market",
-                        qty=0.1,
-                    ))
+            symbol = 'LTC/USDT'
+            amount = 0.1 
+            type = 'market'
+            hft_timeframe = '4h'
+            hft_limit = 100
+
+            hft_ohlcv = bybit.fetch_ohlcv(symbol, timeframe=hft_timeframe, limit=hft_limit)
+
+            # Convert the data into a pandas DataFrame for easy manipulation
+            hft_df = pd.DataFrame(hft_ohlcv, columns=['Timestamp', 'Open', 'High', 'Low', 'Close', 'Volume'])
+            hft_df['Timestamp'] = pd.to_datetime(hft_df['Timestamp'], unit='ms')
+            hft_df.set_index('Timestamp', inplace=True)
+            print(hft_df.tail)
+            # Calculate technical indicators
+
+            print(hft_df)
+            # Calculate SMAs with periods of 20 and 50
+
+
+            hft_df['cross'] = hft_df.ta.sma(length=50, append=True) > hft_df.ta.sma(length=100, append=True)
+
+            for i, row in hft_df.iterrows():
+
+                if hft_df['cross'].iloc[-1] == True:
+                    print(f"crossover SMA 50--- UPTREND")
+                    timeframe='30m'
+                    limit= 100
+                    ohlcv_1h = bybit.fetch_ohlcv(symbol, timeframe=timeframe, limit=limit)
+
+                    df_1 = pd.DataFrame(ohlcv_1h, columns=['Timestamp', 'open', 'high', 'low', 'close', 'volume'])
+                    df_1['Timestamp'] = pd.to_datetime(df_1['Timestamp'], unit='ms')
+                    #df.set_index('Timestamp', inplace=True)
+
+                    print(df_1)
+                    df_1['support'] = df_1['close'].min()
+                    df_1['resistance']  = df_1['close'].max()
+                    print(df_1)
+                    df_1["long_condition"] = 1
+                    df_1.loc[(df_1['close'] <= df_1['support']), "long_condition"] = 2  # at support
+                            
                     
+                    if df_1['long_condition'].iloc[-1] == 2:
+                        order = (session.place_order(
+                            category="linear",
+                            symbol="LTCUSDT",
+                            side="Buy",
+                            orderType="Market",
+                            qty=0.1,
+                        ))
+                        
+                        
+                        print(f"long order placed: {order}")
+                        #print(f"long order placed:")
+                        time.sleep(21600)
+                        break
+                        
                     
-                    print(f"long order placed: {order}")
-                    #print(f"long order placed:")
-                    time.sleep(21600)
-                    break
-                    
-                   
+                    else:
+                        print(f"price is not at support")
+                        
+                        time.sleep(60)
+                        break
                 else:
-                    print(f"checking for signals")
+                    print(f"Crossunder SMA 50- DOWNTREND")
+                    timeframe='30m'
+                    limit= 100
+                    ohlcv_1h = bybit.fetch_ohlcv(symbol, timeframe=timeframe, limit=limit)
+
+                    df_1 = pd.DataFrame(ohlcv_1h, columns=['Timestamp', 'open', 'high', 'low', 'close', 'volume'])
+                    df_1['Timestamp'] = pd.to_datetime(df_1['Timestamp'], unit='ms')
+                    #df.set_index('Timestamp', inplace=True)
+
+                    print(df_1)
+                    df_1['support'] = df_1['close'].min()
+                    df_1['resistance']  = df_1['close'].max()
+                    print(df_1)
+                    df_1["short_condition"] = 1
+                    df_1.loc[(df_1['close'] >= df_1['resistance']), "short_condition"] = 2  # at support
+                            
                     
-                    time.sleep(60)
-                    break
+                    if df_1['short_condition'].iloc[-1] == 2:
+                        order = (session.place_order(
+                            category="linear",
+                            symbol="LTCUSDT",
+                            side="Sell",
+                            orderType="Market",
+                            qty=0.1,
+                        ))
+                        
+                        
+                        print(f"short order placed: {order}")
+                        #print(f"long order placed:")
+                        time.sleep(21600)
+                        break
+                        
+                    
+                    else:
+                        print(f"price is not at resistance")
+                        
+                        time.sleep(60)
+                        break
                     
                     
                     

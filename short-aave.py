@@ -3,8 +3,7 @@ import pandas as pd
 import pandas_ta as ta
 import time
 import schedule
-import numpy as np
-from scipy.signal import argrelextrema
+
 from pybit.unified_trading import HTTP
 
 
@@ -60,26 +59,12 @@ def trading_bot():
     print(df)
     # Step 5: Calculate technical indicators
 
-    #df.ta.ema(length=20, append=True)
+    SMA_20 = df.ta.sma()
   
-    
-
-    WINDOW = 10 
-
-    df['min'] = df.iloc[argrelextrema(df['Close'].values, np.less_equal, order=WINDOW)[0]]['Close']
-    df['max'] = df.iloc[argrelextrema(df['Close'].values, np.greater_equal, order=WINDOW)[0]]['Close']
-    print(df)
+    df['support'] = df['close'].min()
+    df['resistance']  = df['close'].max()
 
     #entry signal
-    df["support"] = 0
-
-    df.loc[(df['min'] < 0), "support" ]= 1 #not at support
-    df.loc[(df['min'] > 1), "support" ]= 2 #at support'
-    
-    df["resistance"] = 0
-
-    df.loc[(df['max'] < 0), "resistance" ]= 1 #not at resistance
-    df.loc[(df['max'] > 1), "resistance" ]= 2 #at resistance
    
    
 
