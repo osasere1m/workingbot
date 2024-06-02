@@ -360,4 +360,9 @@ def trading_bot():
             print(f"trend is consolidating")
             break
 
-trading_bot()           
+trading_bot() 
+schedule.every(1).minutes.do(trading_bot)
+# Call the trading_bot function every 2 minutes
+while True:
+    schedule.run_pending()
+    time.sleep(20)          
