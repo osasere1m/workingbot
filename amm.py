@@ -64,7 +64,7 @@ def trading_bot():
             category="linear",
             symbol=symbol,
             ) 
-        print(ob)
+        #print(ob)
         ask1 = ob['result']['a'][0][0]
         bid1 = ob['result']['b'][0][0]
         size = 0.3
@@ -186,7 +186,7 @@ def trading_bot():
                         pnl = position['unrealizedPnl'] * 100
 
                         print(f"pnl {pnl} percent") 
-                        print(f"Closing position for {symbol} with PnL: {pnl}%")
+                        print(f"Current position for {symbol} with PnL: {pnl}%")
                     
                         if position['side'] == 'short':
                             pnl_side_buy = 'buy'
@@ -200,24 +200,22 @@ def trading_bot():
                             if order:
                                 print(f"Position closed: {order}")
                                 time.sleep(10)
-                                break
+
+                                print(f"create limit order for {symbol}") 
+                                limit_order = session.place_order(
+                                    category="linear",
+                                    symbol=symbol,
+                                    side=buyside,
+                                    orderType="Limit",
+                                    takeProfit=long_tp1,                        
+                                    price=bid1,
+                                    qty=size,
+                                    )
+                                print(f"Long order placed: {limit_order}")
                         else:
                             print(f"same side as trend direction") 
                             break
 
-                print(f"create limit order for {symbol}") 
-                limit_order = session.place_order(
-                    category="linear",
-                    symbol=symbol,
-                    side=buyside,
-                    orderType="Limit",
-                    takeProfit=long_tp1,                        
-                    price=bid1,
-                    qty=size,
-                    )
-                print(f"Long order placed: {limit_order}")
-                #print(f"long order placed:")
-                time.sleep(40)
                 break
             
                 
@@ -318,7 +316,7 @@ def trading_bot():
                         pnl = position['unrealizedPnl'] * 100
 
                         print(f"pnl {pnl} percent") 
-                        print(f"Closing position for {symbol} with PnL: {pnl}%")
+                        print(f"Current position for {symbol} with PnL: {pnl}%")
                     
                         if position['side'] == 'long':
                             pnl_side_sell = 'sell'
@@ -332,24 +330,25 @@ def trading_bot():
                             if order:
                                 print(f"Position closed: {order}")
                                 time.sleep(10)
-                                break
+                                
+
+                            print(f"create limit order for {symbol}") 
+                            limit_order = (session.place_order(
+                                category="linear",
+                                symbol=symbol,
+                                side=sellside,
+                                orderType="Limit",
+                                takeProfit=short_tp,                        
+                                price=ask1,
+                                qty=size,
+                                ))
+                            print(f"Short order placed: {limit_order}")
                         else:
                             print(f"same side as trend direction") 
                             break
 
-                print(f"create limit order for {symbol}") 
-                limit_order = (session.place_order(
-                    category="linear",
-                    symbol=symbol,
-                    side=sellside,
-                    orderType="Limit",
-                    takeProfit=short_tp,                        
-                    price=ask1,
-                    qty=size,
-                    ))
-                print(f"Short order placed: {limit_order}")
-                #print(f"long order placed:")
-                time.sleep(40)
+                
+                
                 break
             
                 
