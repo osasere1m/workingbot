@@ -27,11 +27,11 @@ session = HTTP(
 bybit.options["dafaultType"] = 'future'
 def trading_bot():
     # Fetch historical OHLCV data for BTC/USD
-    symbol_1 = 'LINK/USDT'
-    timeframe = '30m' # 1-hour candles
+    symbol = 'LINK/USDT'
+    timeframe = '1h' # 1-hour candles
     limit = 200 # Number of candles to fetch
 
-    ohlcv = bybit.fetch_ohlcv(symbol_1, timeframe, limit=limit)
+    ohlcv = bybit.fetch_ohlcv(symbol, timeframe, limit=limit)
 
     # Convert the data to a pandas DataFrame
     df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
@@ -51,6 +51,21 @@ def trading_bot():
     df.loc[(df['HH'] & df['HL']), 'trend'] = 1 #uptrend'
     df.loc[(df['LH'] & df['LL']), 'trend'] = 2 #downtrend'
 
+    #direction of trend with ma
+     
+    df['sma_50'] = ta.sma(df['close'], length=9)
+    
+    df['direction'] = df['sma_50'].tail(10).is_monotonic_increasing
+    #Define the conditions for long and short trades
+    
+    df["long_condition"] = 1
+    df.loc[(df['direction'] == True) & (df['trend'] == 1), "long_condition"] = 2  
+    
+    df["short_condition"] = 1
+    df.loc[(df['direction'] == False) & (df['trend'] == 2), "short_condition"] = 2 
+    print(df.tail(50))  
+
+
     # Print the last few rows to see the trend
     print(df.tail(50))
     for i, row in df.iterrows():
@@ -69,7 +84,7 @@ def trading_bot():
         bid1 = ob['result']['b'][0][0]
         size = 0.3
         #first tp and bid price for buy trade
-        point =0.22
+        point =0.25
         long_price1 = float(bid1)
         #print(long_price1)
         tp_point = point
@@ -89,7 +104,7 @@ def trading_bot():
 
 
         #uptrend signal
-        if df['trend'].iloc[-1] == 1:
+        if df['long_condition'].iloc[-1] == 2:
             #check for open postions
             if not check_positions:
                 print(f"NO open position for {symbol}")
@@ -104,7 +119,7 @@ def trading_bot():
 
                 #check for open limit order
 
-                if open_limit_order:
+                if not open_limit_order:
                     print(f"NO limit order for {symbol}")
                     print(f"create limit order for {symbol}") 
                     limit_order = (session.place_order(
@@ -116,8 +131,7 @@ def trading_bot():
                         price=bid1,
                         qty=size,
                         ))
-                    print(f"Short order placed: {limit_order}")
-                    #print(f"long order placed:")
+                    print(f"long order placed: {limit_order}")
                     time.sleep(40)
                     break
                     
@@ -129,7 +143,7 @@ def trading_bot():
                         openOnly=0,
                         limit=1,
                     )
-                    print(open_limit_order)
+                    #print(open_limit_order)
                     for item in open_limit_order['result']['list']:
                         side = item['side']
                         print(side)
@@ -156,6 +170,7 @@ def trading_bot():
                                 qty=size,
                                 ))
                             print(f"Long order placed: {limit_order}")
+                            break
                         else:
                             print(f"same size as trend direction")
 
@@ -186,7 +201,7 @@ def trading_bot():
                         pnl = position['unrealizedPnl'] * 100
 
                         print(f"pnl {pnl} percent") 
-                        print(f"Current position for {symbol} with PnL: {pnl}%")
+                        print(f"Closing position for {symbol} with PnL: {pnl}%")
                     
                         if position['side'] == 'short':
                             pnl_side_buy = 'buy'
@@ -200,27 +215,29 @@ def trading_bot():
                             if order:
                                 print(f"Position closed: {order}")
                                 time.sleep(10)
-
-                                print(f"create limit order for {symbol}") 
-                                limit_order = session.place_order(
-                                    category="linear",
-                                    symbol=symbol,
-                                    side=buyside,
-                                    orderType="Limit",
-                                    takeProfit=long_tp1,                        
-                                    price=bid1,
-                                    qty=size,
-                                    )
-                                print(f"Long order placed: {limit_order}")
+                                break
                         else:
                             print(f"same side as trend direction") 
                             break
 
+                print(f"create limit order for {symbol}") 
+                limit_order = session.place_order(
+                    category="linear",
+                    symbol=symbol,
+                    side=buyside,
+                    orderType="Limit",
+                    takeProfit=long_tp1,                        
+                    price=bid1,
+                    qty=size,
+                    )
+                print(f"Long order placed: {limit_order}")
+                #print(f"long order placed:")
+                time.sleep(40)
                 break
             
                 
         #downtrend signal
-        elif df['trend'].iloc[-1] == 2:
+        elif df['short_condition'].iloc[-1] == 2:
             print(f"In a downtrend ")
             #check for open postions
             if not check_positions:
@@ -233,7 +250,7 @@ def trading_bot():
                     limit=1,
                 ))
                 #print(open_limit_order)
-                if open_limit_order:
+                if not open_limit_order:
                     print(f"NO open order for {symbol}")
                     print(f"create limit order for {symbol}") 
                     limit_order = session.place_order(
@@ -316,7 +333,7 @@ def trading_bot():
                         pnl = position['unrealizedPnl'] * 100
 
                         print(f"pnl {pnl} percent") 
-                        print(f"Current position for {symbol} with PnL: {pnl}%")
+                        print(f"Closing position for {symbol} with PnL: {pnl}%")
                     
                         if position['side'] == 'long':
                             pnl_side_sell = 'sell'
@@ -330,36 +347,142 @@ def trading_bot():
                             if order:
                                 print(f"Position closed: {order}")
                                 time.sleep(10)
+                                print(f"create limit sell order for {symbol}") 
+                                limit_order = session.place_order(
+                                    category="linear",
+                                    symbol=symbol,
+                                    side=sellside,
+                                    orderType="Limit",
+                                    takeProfit=short_tp,                        
+                                    price=ask1,
+                                    qty=size,
+                                    )
+                                print(f"Short order placed: {limit_order}")
+                                time.sleep(40)
+                                break
                                 
-
-                            print(f"create limit order for {symbol}") 
-                            limit_order = (session.place_order(
-                                category="linear",
-                                symbol=symbol,
-                                side=sellside,
-                                orderType="Limit",
-                                takeProfit=short_tp,                        
-                                price=ask1,
-                                qty=size,
-                                ))
-                            print(f"Short order placed: {limit_order}")
                         else:
                             print(f"same side as trend direction") 
                             break
-
-                
-                
                 break
-            
                 
-                
-               
         
         else:
             print(f"trend is consolidating")
-            break
+            if not check_positions:
+                print(f"NO open position for {symbol}")
+                #fetch open order
+                open_limit_order= len(session.get_open_orders(
+                    category="linear",
+                    symbol=symbol,
+                    openOnly=0,
+                    limit=1,
+                ))==0
+                if not open_limit_order:
+                    print(f"NO limit order for {symbol}")
+                    
+                    time.sleep(10)
+                    break
+                    
+                else:
+                    print("There is already an open limit order.")
+                    open_limit_order= session.get_open_orders(
+                        category="linear",
+                        symbol=symbol,
+                        openOnly=0,
+                        limit=1,
+                    )
+                    #print(open_limit_order)
+                    for item in open_limit_order['result']['list']:
+                        side = item['side']
+                        print(side)
 
-trading_bot() 
+                        # Check if the side is 'Buy' and if so, cancel the order
+                        if side == 'Sell':
+                            order_id = item['orderId']
+                            cancel_order=session.cancel_order(
+                                category="linear",
+                                symbol=symbol,
+                                orderId=order_id,
+                            )
+                            print(cancel_order)
+                            
+                            #create new  buy limit order
+                            print(f"cancel order limit sell order for {symbol}") 
+                            time.sleep(10)
+                            break
+                           
+                        else:
+                            print(f"same size as trend direction")
+                            order_id = item['orderId']
+                            cancel_order=session.cancel_order(
+                                category="linear",
+                                symbol=symbol,
+                                orderId=order_id,
+                            )
+                            print(cancel_order)
+                            time.sleep(10)
+                            print(f"cancel order limit buy order for {symbol}") 
+                            break
+                    break
+
+            else:
+                print(f"in position already") 
+                for position in positions:
+                    if abs(position['contracts']) > 0:
+
+                        ds = position['id']
+                        symbol = position['symbol']
+                        
+                        entryPrice = position['entryPrice']
+                        amount = position['contracts']
+
+                        
+
+                        print(f"{symbol} and {entryPrice}, {amount}")
+
+                        if position['unrealizedPnl'] is None or position['initialMargin'] is None:
+                            print("Skipping position pnl due to value being zero")
+                            continue
+
+                        pnl = position['unrealizedPnl'] * 100
+
+                        print(f"pnl {pnl} percent") 
+                        print(f"Closing position for {symbol} with PnL: {pnl}%")
+                    
+                        if position['side'] == 'long':
+                            pnl_side_sell = 'sell'
+                            order = bybit.create_market_order(
+                                
+                                symbol=symbol,
+                                side=pnl_side_sell,
+                                
+                                amount=amount,
+                            )
+                            if order:
+                                print(f"close open long position for {symbol}") 
+                                time.sleep(10)
+                                
+                                break
+                        else:
+                            pnl_side_buy = 'buy'
+                            order = bybit.create_market_order(
+                                
+                                symbol=symbol,
+                                side=pnl_side_buy,
+                                
+                                amount=amount,
+                            )
+                            if order:
+                                print(f"close open short position for {symbol}") 
+                                time.sleep(10)
+                                
+                                break
+
+                break
+
+trading_bot()           
+
 schedule.every(1).minutes.do(trading_bot)
 # Call the trading_bot function every 2 minutes
 while True:
