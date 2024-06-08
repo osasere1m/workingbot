@@ -40,7 +40,7 @@ get_balance()
 
 
 def trading_bot():
-    symbol = 'LINK/USDT'
+    symbol = 'AAVE/USDT'
 
     timeframe = '4h'
     #limit = 500
@@ -100,7 +100,7 @@ def trading_bot():
                     
                         order = (session.place_order(
                             category="linear",
-                            symbol=symbol,
+                            symbol="AAVEUSDT",
                             side="Buy",
                             orderType="Market",
                             qty=0.2,
@@ -117,7 +117,7 @@ def trading_bot():
                     
                         order = (session.place_order(
                             category="linear",
-                            symbol=symbol,
+                            symbol="AAVEUSDT",
                             side="Sell",
                             orderType="Market",
                             qty=0.2,
