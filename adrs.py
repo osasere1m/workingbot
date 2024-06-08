@@ -52,6 +52,7 @@ def trading_bot():
             hft_limit = 100
 
             hft_ohlcv = bybit.fetch_ohlcv(symbol, timeframe=hft_timeframe, limit=hft_limit)
+            
 
             # Convert the data into a pandas DataFrame for easy manipulation
             hft_df = pd.DataFrame(hft_ohlcv, columns=['Timestamp', 'Open', 'High', 'Low', 'Close', 'Volume'])
@@ -60,18 +61,17 @@ def trading_bot():
             print(hft_df.tail)
             # Calculate technical indicators
 
-            print(hft_df)
             # Calculate SMAs with periods of 20 and 50
 
-
-            hft_df['cross'] = hft_df.ta.sma(length=50, append=True) > hft_df.ta.sma(length=100, append=True)
+            hft_df['cross'] = hft_df['Close'] > hft_df.ta.sma(length=20, append=True) 
+            print(hft_df)
 
             for i, row in hft_df.iterrows():
 
                 if hft_df['cross'].iloc[-1] == True:
-                    print(f"crossover SMA 50--- UPTREND")
-                    timeframe='30m'
-                    limit= 100
+                    print(f"Price over SMA 20 4hr--- UPTREND")
+                    timeframe='5m'
+                    limit= 50
                     ohlcv_1h = bybit.fetch_ohlcv(symbol, timeframe=timeframe, limit=limit)
 
                     df_1 = pd.DataFrame(ohlcv_1h, columns=['Timestamp', 'open', 'high', 'low', 'close', 'volume'])
@@ -89,10 +89,10 @@ def trading_bot():
                     if df_1['long_condition'].iloc[-1] == 2:
                         order = (session.place_order(
                             category="linear",
-                            symbol="LTCUSDT",
+                            symbol="AAVEUSDT",
                             side="Buy",
                             orderType="Market",
-                            qty=0.1,
+                            qty=0.2,
                         ))
                         
                         
@@ -108,8 +108,8 @@ def trading_bot():
                         time.sleep(60)
                         break
                 else:
-                    print(f"Crossunder SMA 50- DOWNTREND")
-                    timeframe='30m'
+                    print(f"Price under SMA 20 4hr- DOWNTREND")
+                    timeframe='5m'
                     limit= 100
                     ohlcv_1h = bybit.fetch_ohlcv(symbol, timeframe=timeframe, limit=limit)
 
@@ -128,10 +128,11 @@ def trading_bot():
                     if df_1['short_condition'].iloc[-1] == 2:
                         order = (session.place_order(
                             category="linear",
-                            symbol="LTCUSDT",
+                            symbol="AAVEUSDT",
                             side="Sell",
                             orderType="Market",
                             qty=0.1,
+
                         ))
                         
                         
@@ -144,7 +145,7 @@ def trading_bot():
                     else:
                         print(f"price is not at resistance")
                         
-                        time.sleep(60)
+                        time.sleep(10)
                         break
                     
                     
@@ -154,7 +155,7 @@ def trading_bot():
             
             
                 
-            time.sleep(30)
+            time.sleep(20)
 
     except ccxt.RequestTimeout as e:
         print(f"A request timeout occurred: {e}")

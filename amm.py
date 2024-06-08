@@ -5,6 +5,7 @@ import ccxt
 
 import time
 import pandas as pd
+import pandas_ta as ta
 import time
 import schedule
 from pybit.unified_trading import HTTP

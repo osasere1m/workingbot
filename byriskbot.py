@@ -64,7 +64,7 @@ def kill_switch():
                 #10 x leverage= tp =1.02 and sl=0.71
         
 
-                if pnl <= -14.4 or pnl >= 25:
+                if pnl <= -14 or pnl >= 20:
                     print(f"Closing position for {symbol} with PnL: {pnl}%")
                 
                     if position['side'] == 'short':
@@ -78,7 +78,7 @@ def kill_switch():
                         )
                         if order:
                             print(f"Position closed: {order}")
-                            time.sleep(60)
+                            time.sleep(20)
                             break
                     else:
                         side = 'sell'
@@ -91,7 +91,7 @@ def kill_switch():
                         )
                         if order:
                             print(f"Position closed: {order}")
-                            time.sleep(60)
+                            time.sleep(20)
                             break
                 else:
                     pass
@@ -113,11 +113,11 @@ kill_switch()
 
 #schedule.every(20).seconds.do(kill_switch)
 schedule.every(1).minutes.do(kill_switch)
-# Call the trading_bot function every 2 minutes
+# Call the trading_bot function every 1 minutes
 while True:
     schedule.run_pending()
 
-    time.sleep(20)
+    time.sleep(10)
     
 
 
