@@ -43,8 +43,8 @@ def trading_bot():
     symbol = 'AAVE/USDT'
 
     timeframe = '4h'
-    #limit = 500
-    ohlcv = bybit.fetch_ohlcv(symbol, timeframe)
+    limit = 50
+    ohlcv = bybit.fetch_ohlcv(symbol, timeframe, limit=limit)
 
 
     # Convert the data into a pandas DataFrame for easy manipulation
@@ -69,9 +69,12 @@ def trading_bot():
 
     # Print the last few rows to see the trend
     print(df.tail(50))
-    df["signal"] = 0
-    df.loc[(df['close'] > df['SMA_10']) , "signal"] = 1 # buy
-    df.loc[(df['close'] < df['SMA_10']) , "signal"] = 2 # sell
+    df["signal"] = df['close'] > df['SMA_10']
+    df['support'] = df['close'].min()
+    df['resistance']  = df['close'].max()
+    print(df)
+    #df.loc[(df['close'] > df['SMA_10']) , "signal"] = 1 # buy
+    #df.loc[(df['close'] < df['SMA_10']) , "signal"] = 2 # sell
     
         
         
@@ -87,14 +90,10 @@ def trading_bot():
 
             for i, row in df.iterrows():
 
-                #check open order
                 
-
                 # Step 6: Implement the trading strategy
                 
-                
-                
-                if df['signal'].iloc[-1] ==1 :
+                if df['signal'].iloc[-1] ==True:
                     print(f"PRICE CLOSE ABOVE SMA 10--BULLISH")
                     if df['trend'].iloc[-1] == 1:
                     
@@ -111,6 +110,7 @@ def trading_bot():
                         break
                     else:
                         print(f"ENTRY CONDITION NOT MEET FOR BUY")
+                        break
                 else :
                     print(f"PRICE CLOSE BELOW SMA 10--BEARISH")
                     if df['trend'].iloc[-1] == 2:
@@ -128,6 +128,7 @@ def trading_bot():
                         break
                     else:
                         print(f"ENTRY CONDITION NOT MEET FOR SEll")
+                        break
             
             
         else:
