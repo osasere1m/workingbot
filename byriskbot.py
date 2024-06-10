@@ -1,7 +1,5 @@
 import ccxt
-import time
 import schedule
-import time
 
 
 bybit = ccxt.bybit({
@@ -17,7 +15,6 @@ bybit = ccxt.bybit({
 
 #bybit.set_sandbox_mode(True) # activates testnet mode
 bybit.options["dafaultType"] = 'future'
-
 
 def get_balance():
     try:
@@ -38,65 +35,82 @@ get_balance()
 def kill_switch():
     try:
         positions = bybit.fetch_positions()
-        print(f"{positions}information")
-        
+        #print(f"{positions}information")
+        if positions:
+            positions = bybit.fetch_positions()
+    
+            position_balances = [item['info']['positionBalance'] for item in positions]
 
-        for position in positions:
-            if abs(position['contracts']) > 0:
+            # Print the filtered position balances
+            for balance in position_balances:
+                balance= balance
+            #print(positionBalance)
+            for position in positions:
+                if abs(position['contracts']) > 0:
 
-                ds = position['id']
-                symbol = position['symbol']
-                
-                entryPrice = position['entryPrice']
-                amount = position['contracts']
+                    ds = position['id']
+                    symbol = position['symbol']
+                    entryPrice = position['entryPrice']
+                    amount = position['contracts']
+                    markPrice= position['markPrice']
+                    positionBalance = float(balance)
+                    print(f"{symbol} and entryPrice:{entryPrice}, amount:{amount}")
 
-                
+                    if position['unrealizedPnl'] is None or position['initialMargin'] is None:
+                        print("Skipping position pnl due to value being zero")
+                        continue
 
-                print(f"{symbol} and {entryPrice}, {amount}")
+                    
+            
+                    if position['side'] == 'long':
+                        pnl_cal = float((markPrice - entryPrice)* amount)
+                        pnl_usd= round(pnl_cal, 3)
+                        pnl_divide= float((pnl_usd/positionBalance)*100)
+                        pnl_round = round(pnl_divide, 3)
+                        ROI = pnl_round
+                        print(f"Long position: pnlUSD: {pnl_usd} and ROI:{pnl_round} percent")
+                        
+                        
+                    else:
+                        pnl_cal = float((entryPrice - markPrice)* amount)
+                        pnl_usd= round(pnl_cal,3)
+                        pnl_divide= float((pnl_usd/positionBalance)*100)
+                        pnl_round = round(pnl_divide, 3)
+                        ROI = pnl_round
+                        print(f"Short Postion: pnlUSD: {pnl_usd} and ROI:{pnl_round} percent")
+                        
 
-                if position['unrealizedPnl'] is None or position['initialMargin'] is None:
-                    print("Skipping position pnl due to value being zero")
-                    continue
 
-                pnl = position['unrealizedPnl'] * 100
-
-                print(f"pnl {pnl} percent")
-                #10 x leverage= tp =1.02 and sl=0.71
-        
-
-                if pnl <= -14 or pnl >= 20:
-                    print(f"Closing position for {symbol} with PnL: {pnl}%")
-                
-                    if position['side'] == 'short':
-                        side = 'buy'
-                        order = bybit.create_market_order(
+                    if ROI <= -13 or ROI >= 20:
+                        print(f"Closing position for {symbol} with PnL: {ROI}%")
+                    
+                        if position['side'] == 'short':
+                            side = 'buy'
+                            order = bybit.create_market_order(
+                                
+                                symbol=symbol,
+                                side=side,
+                                
+                                amount=amount,
+                            )
                             
-                            symbol=symbol,
-                            side=side,
+                            break
+                        else:
+                            side = 'sell'
+                            order = bybit.create_market_order(
+                                
+                                symbol=symbol,
+                                side=side,
+                                
+                                amount=amount,
+                            )
                             
-                            amount=amount,
-                        )
-                        if order:
-                            print(f"Position closed: {order}")
-                            time.sleep(20)
                             break
                     else:
-                        side = 'sell'
-                        order = bybit.create_market_order(
-                            
-                            symbol=symbol,
-                            side=side,
-                            
-                            amount=amount,
-                        )
-                        if order:
-                            print(f"Position closed: {order}")
-                            time.sleep(20)
-                            break
-                else:
-                    pass
-            else:
-                print("There is no open position.")
+                        pass
+        else:
+            print("There is no open position.")
+            pass
                 
 
     except ccxt.RequestTimeout as e:
@@ -112,12 +126,12 @@ def kill_switch():
 kill_switch()
 
 #schedule.every(20).seconds.do(kill_switch)
-schedule.every(1).minutes.do(kill_switch)
-# Call the trading_bot function every 1 minutes
+schedule.every(20).seconds.do(kill_switch)
+# Call the trading_bot function every 2 minutes
 while True:
     schedule.run_pending()
 
-    time.sleep(10)
+    #time.sleep(10)
     
 
 
