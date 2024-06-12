@@ -89,7 +89,7 @@ def trading_bot():
                     if df_1['long_condition'].iloc[-1] == 2:
                         order = (session.place_order(
                             category="linear",
-                            symbol="AAVEUSDT",
+                            symbol="LTCUSDT",
                             side="Buy",
                             orderType="Market",
                             qty=0.2,
@@ -128,7 +128,7 @@ def trading_bot():
                     if df_1['short_condition'].iloc[-1] == 2:
                         order = (session.place_order(
                             category="linear",
-                            symbol="AAVEUSDT",
+                            symbol="LTCUSDT",
                             side="Sell",
                             orderType="Market",
                             qty=0.1,
