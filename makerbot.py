@@ -59,8 +59,8 @@ def trading_bot():
     #The shift function is used to compare the current high/low with the high/low 8 periods ago for HH/HL and 4 periods ago for LH/LL.
     df['LH'] = df['high'] < df['high'].shift(4)
     df['LL'] = df['low'] < df['low'].shift(4)
-    df['SMA_10']= ta.sma(df['close'], length=10)
-
+    df['EMA_10']= ta.ema(df['close'], length=10)
+    df['EMA_20']= ta.ema(df['close'], length=10)
 
     # Determine the trend
     df['trend'] = 0 #consolidating
@@ -69,9 +69,7 @@ def trading_bot():
 
     # Print the last few rows to see the trend
     print(df.tail(50))
-    df["signal"] = df['close'] > df['SMA_10']
-    df['support'] = df['close'].min()
-    df['resistance']  = df['close'].max()
+    df["signal"] = df['EMA_10'] > df['EMA_20']
     print(df)
     #df.loc[(df['close'] > df['SMA_10']) , "signal"] = 1 # buy
     #df.loc[(df['close'] < df['SMA_10']) , "signal"] = 2 # sell
@@ -82,11 +80,12 @@ def trading_bot():
         
         positions = bybit.fetch_positions()
 
-        check_positions = [position for position in positions if 'LINK' in position['symbol']]
-        print(f"open position {positions}")
+        check_positions = [position for position in positions if 'AAVE' in position['symbol']]
+        #print(f"open position {positions}")
         
         #check open order
         if not check_positions:
+            print(f"No open position")
 
             for i, row in df.iterrows():
 
