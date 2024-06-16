@@ -40,11 +40,11 @@ get_balance()
 
 
 def trading_bot():
-    symbol = 'AAVE/USDT'
+    symbol = 'LTC/USDT'
 
-    timeframe = '4h'
-    limit = 50
-    ohlcv = bybit.fetch_ohlcv(symbol, timeframe, limit=limit)
+    timeframe = '1d'
+    limit = 200
+    ohlcv = bybit.fetch_ohlcv(symbol, timeframe, )
 
 
     # Convert the data into a pandas DataFrame for easy manipulation
@@ -60,8 +60,9 @@ def trading_bot():
     df['LH'] = df['high'] < df['high'].shift(4)
     df['LL'] = df['low'] < df['low'].shift(4)
     df['EMA_10']= ta.ema(df['close'], length=10)
-    df['EMA_20']= ta.ema(df['close'], length=10)
+    df['EMA_50']= ta.ema(df['close'], length=50)
 
+    
     # Determine the trend
     df['trend'] = 0 #consolidating
     df.loc[(df['HH'] & df['HL']), 'trend'] = 1 #uptrend'
@@ -69,64 +70,80 @@ def trading_bot():
 
     # Print the last few rows to see the trend
     print(df.tail(50))
-    df["signal"] = df['EMA_10'] > df['EMA_20']
-    print(df)
-    #df.loc[(df['close'] > df['SMA_10']) , "signal"] = 1 # buy
-    #df.loc[(df['close'] < df['SMA_10']) , "signal"] = 2 # sell
+    #trend confirmation
+
+
+    df["signal"] = 0
+    df.loc[(df['close'] > df['EMA_10']) & (df['EMA_10'] > df['EMA_50']) , "signal"] = 1 # buy
+    df.loc[(df['close'] < df['EMA_10'])& (df['EMA_10'] < df['EMA_50']) , "signal"] = 2 # sell
     
-        
-        
+
+    print(df)
+   
+    #check if prior candle close above ema 10-- Downtrend
+    df['DTcandle'] = (df['close'].iloc[-2] > df['EMA_10'].iloc[-2])
+    #check if prior candle close below ema 10-- Uptrend
+    df['UTcandle'] = (df['close'].iloc[-2] < df['EMA_10'].iloc[-2])
+    print(df)
+
+       
     try:
         
         positions = bybit.fetch_positions()
-
-        check_positions = [position for position in positions if 'LINK' in position['symbol']]
+        check_positions = [position for position in positions if 'AAVE' in position['symbol']]
         print(f"open position {positions}")
+        bybit.fetch_open_orders(symbol)
         
         #check open order
         if not check_positions:
-            print(f"No open position")
 
             for i, row in df.iterrows():
 
-                
                 # Step 6: Implement the trading strategy
                 
-                if df['signal'].iloc[-1] ==True:
+                if df['signal'].iloc[-1] ==1 :
                     print(f"PRICE CLOSE ABOVE SMA 10--BULLISH")
-                    if df['trend'].iloc[-1] == 1:
+                    if df['UTcandle'].iloc[-1] == True:
+                        print(f"PRIOR CANDLE CLOSE BELOW EMA 10")
                     
-                        order = (session.place_order(
-                            category="linear",
-                            symbol="AAVEUSDT",
-                            side="Buy",
-                            orderType="Market",
-                            qty=0.2,
+                        if df['trend'].iloc[-1] == 1:
                             
-                        ))
-                        print(f"three long order placed:{order}")
-                        time.sleep(43200)
-                        break
+                        
+                            order = (session.place_order(
+                                category="linear",
+                                symbol=symbol,
+                                side="Buy",
+                                orderType="Market",
+                                qty=0.2,
+                                
+                            ))
+                            print(f"three long order placed:{order}")
+                            time.sleep(60)
+                            break
                     else:
                         print(f"ENTRY CONDITION NOT MEET FOR BUY")
                         break
                 else :
-                    print(f"PRICE CLOSE BELOW SMA 10--BEARISH")
-                    if df['trend'].iloc[-1] == 2:
-                    
-                        order = (session.place_order(
-                            category="linear",
-                            symbol="AAVEUSDT",
-                            side="Sell",
-                            orderType="Market",
-                            qty=0.2,
-                        ))
+                    print(f"PRICE CLOSE BELOW EMA 10--BEARISH")
+                    if df['DTcandle'].iloc[-1] == True:
+                        print(f"PRIOR CANDLE CLOSE ABOVE EMA 10")
+
+                        if df['trend'].iloc[-1] == 2:
                         
-                        print(f"short order placed: {order}")
-                        time.sleep(43200)
-                        break
+                            order = (session.place_order(
+                                category="linear",
+                                symbol=symbol,
+                                side="Sell",
+                                orderType="Market",
+                                qty=0.2,
+                            ))
+                            
+                            print(f"short order placed: {order}")
+                            time.sleep(60)
+                            break
                     else:
                         print(f"ENTRY CONDITION NOT MEET FOR SEll")
+                        time.sleep(30)
                         break
             
             
@@ -139,6 +156,7 @@ def trading_bot():
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
         # Handle all other unexpected errors
+    
 trading_bot()
 schedule.every(1).minutes.do(trading_bot)
 # Call the trading_bot function every 2 minutes
