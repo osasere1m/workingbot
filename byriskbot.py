@@ -3,8 +3,8 @@ import schedule
 
 
 bybit = ccxt.bybit({
-    'apiKey': 'LQLW7aAhcalaYMAiUe',
-    'secret': 'X02KF8x2VVXuXDQmoWAd8TCXx3dS7M7fAaKD',
+    'apiKey': '',
+    'secret': '',
     'enableRateLimit': True,
     'options': {
         'defaultType': 'future',
