@@ -7,8 +7,8 @@ import schedule
 from pybit.unified_trading import HTTP
 
 bybit = ccxt.bybit({
-    'apiKey': 'LQLW7aAhcalaYMAiUe',
-    'secret': 'X02KF8x2VVXuXDQmoWAd8TCXx3dS7M7fAaKD',
+    'apiKey': '',
+    'secret': '',
     'enableRateLimit': True,
     'options': {
         'defaultType': 'future',
@@ -18,8 +18,8 @@ bybit = ccxt.bybit({
 
 session = HTTP(
     testnet=False,
-    api_key="LQLW7aAhcalaYMAiUe",
-    api_secret="X02KF8x2VVXuXDQmoWAd8TCXx3dS7M7fAaKD",
+    api_key="",
+    api_secret="",
 )
 
 #bybit.set_sandbox_mode(True) # activates testnet mode
