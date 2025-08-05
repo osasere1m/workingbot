@@ -6,7 +6,7 @@ from scipy.signal import argrelextrema
 import time
 from datetime import datetime
 from pybit.unified_trading import HTTP
-
+import schedule
 # Configuration
 
 SYMBOL = 'LINKUSDT'  # Using linear contract symbol
@@ -433,6 +433,24 @@ def move_to_breakeven():
     except Exception as e:
         print(f"Breakeven move failed: {str(e)}")
 
+
+def run_scheduled_job():
+    """Wrapper function for scheduled execution"""
+    print(f"\n{datetime.now()} - Running scheduled trading system check")
+    trading_system()
+
 if __name__ == "__main__":
     print("Starting trading system with pybit API...")
-    trading_system()
+    # Schedule the job to run every 15 minutes
+    schedule.every(15).minutes.do(run_scheduled_job)
+    
+    # Run immediately on startup
+    run_scheduled_job()
+    
+    # Keep the program running and execute scheduled jobs
+    while True:
+        schedule.run_pending()
+        time.sleep(1)  # Sleep to reduce CPU usage
+
+
+
