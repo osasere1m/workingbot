@@ -1,6 +1,6 @@
 import ccxt
 import pandas as pd
-import pandas_ta as ta
+#import pandas_ta as ta
 import numpy as np
 from scipy.signal import argrelextrema
 import time
@@ -9,14 +9,16 @@ from pybit.unified_trading import HTTP
 import schedule
 # Configuration
 
+
+#PARAMETERS
 SYMBOL = 'LINKUSDT'  # Using linear contract symbol
 TIMEFRAME = '15m'
 EMA_PERIOD = 100
-SL_PIPS = 0.20
-TP1_PIPS, TP2_PIPS, TP3_PIPS = 0.40, 0.50, 0.60
+SL_PIPS = 0.50
+TP1_PIPS, TP2_PIPS, TP3_PIPS = 0.100, 0.150, 0.160
 TP1_PERCENT, TP2_PERCENT, TP3_PERCENT = 50, 25, 25
 LOT_SIZE = 0.4  
-PIP_VALUE = 0.5  
+PIP_VALUE = 0.5 
 
 session = HTTP(
     testnet=False,
@@ -38,8 +40,7 @@ bybit.options["dafaultType"] = 'future'
 bybit.load_markets()
 
 
-
-def calculate_support_resistance(df, lookback=10):
+def calculate_support_resistance(df, lookback=15):
     """Calculate support and resistance levels"""
     # Initialize columns
     for level in ['resistance_1', 'resistance_2', 'resistance_3', 'support_1', 'support_2', 'support_3']:
@@ -77,19 +78,25 @@ def check_trading_conditions(df):
     resistance_zone = [df['resistance_3'].iloc[-1]]
     support_zone = df['support_3'].iloc[-1]
                        
-    
+    print(df)
     # Get current market price
     ticker = session.get_tickers(category="linear", symbol=SYMBOL)['result']['list'][0]
     ask = float(ticker['ask1Price'])
     bid = float(ticker['bid1Price'])
     
      # CORRECTED CONDITION ASSIGNMENT - Now works for entire DataFrame
-    df['Long_entry'] = (df['close'] > df['resistance_3']) & \
+    df['Long_entry'] = (df['close'] > df['resistance_1']) & \
+                        (df['open'] < df['resistance_1']) & \
+                        (df['low'] < df['resistance_1']) & \
                        (df['close'] > df['ema']) & \
+                        (df['ema'] > df['ema_200']) & \
                        (df['ema_slope'] > 15)
     
-    df['Sell_entry'] = (df['close'] < df['support_3']) & \
+    df['Sell_entry'] = (df['close'] < df['support_1']) & \
+                        (df['open'] > df['support_1']) & \
+                        (df['high'] > df['support_1']) & \
                        (df['close'] < df['ema']) & \
+                       (df['ema'] < df['ema_200']) & \
                        (df['ema_slope'] < -15)
     
     # Initialize condition columns
@@ -200,7 +207,8 @@ def check_trading_conditions(df):
                     symbol=SYMBOL,
                     side="Sell",
                     orderType="Limit",
-                    tpslMode="Partial",        
+                    tpslMode="Partial",
+                    takeProfit=tp1,        
                     qty=LOT_SIZE,
                     price=ask,
                     stopLoss=stop_loss,
@@ -256,7 +264,7 @@ def print_status(df):
     """Print current market status"""
     print(f"\n{datetime.now()} - Market Status:")
     print(f"Price: {df['close'].iloc[-1]} | EMA: {df['ema'].iloc[-1]}")
-    print(f"Support: {df['support_2'].iloc[-1]},{df['support_3'].iloc[-1]} | Resistance: {df['resistance_2'].iloc[-1]}, {df['resistance_3'].iloc[-2]}")
+    print(f"Support: {df['support_1'].iloc[-1]},{df['support_2'].iloc[-1]} | Resistance: {df['resistance_1'].iloc[-1]}, {df['resistance_2'].iloc[-2]}")
     print(f"EMA Slope: {df['ema_slope'].iloc[-1]:.2f} degree")
 
 def trading_system():
@@ -294,7 +302,9 @@ def trading_system():
 
             # 3. Calculate indicators
             try:
-                df['ema'] = ta.ema(df['close'], length=EMA_PERIOD)
+                #df['ema'] = ta.ema(df['close'], length=EMA_PERIOD)
+                df['ema'] = df['close'].ewm(span=EMA_PERIOD, adjust=False).mean()
+                df['ema_200'] = df['close'].ewm(span=200, adjust=False).mean()
                 df['ema_slope'] = df['ema'].diff() * 10000
             except Exception as e:
                 print(f"Error calculating indicators: {e}")
@@ -329,6 +339,7 @@ def trading_system():
                 print(f"Error printing status: {e}")
 
             time.sleep(60)
+            break
             
         except Exception as e:
             print(f"System error: {e}")
